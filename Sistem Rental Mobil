@@ -1,0 +1,314 @@
+# ============================================================
+# SISTEM RENTAL MOBIL SEDERHANA - BERBASIS PYTHON
+# Mata Kuliah : Algoritma dan Pemrograman II
+# ============================================================
+# Anggota 1 - Agung Dwi Jaya    : tampilkan_daftar_mobil(), proses_rental(), tampilkan_struk_rental()
+# Anggota 2 - Marsel            : hitung_total_biaya(), cari_mobil_tersedia(), kelola_pengembalian()
+# Anggota 3 - Fakhri Muhtasib   : simpan_riwayat(), muat_riwayat(), tampilkan_riwayat_rekursif()
+# ============================================================
+
+# KONSEP 1: LIST 2D
+daftar_mobil = [
+    [1, "Toyota Avanza",     "B 1234 ABC", 350000, "Tersedia"],
+    [2, "Honda Jazz",        "B 5678 DEF", 300000, "Tersedia"],
+    [3, "Toyota Innova",     "B 9012 GHI", 500000, "Tersedia"],
+    [4, "Daihatsu Xenia",    "B 3456 JKL", 300000, "Tersedia"],
+    [5, "Mitsubishi Pajero", "B 7890 MNO", 700000, "Tersedia"],
+    [6, "Suzuki Ertiga",     "B 2345 PQR", 350000, "Tersedia"],
+]
+
+# KONSEP 2: TUPLE (Diubah: Ekonomi -> Sederhana, Sederhana(lama) -> Sedang)
+KATEGORI_MOBIL = ("Sederhana", "Sedang", "Mewah")
+
+# DICTIONARY (Diubah: Mapping disesuaikan)
+# Avanza, Jazz, Xenia -> Sederhana | Innova, Ertiga -> Sedang | Pajero -> Mewah
+kategori_mapping = {1: "Sederhana", 2: "Sederhana", 3: "Sedang", 4: "Sederhana", 5: "Mewah", 6: "Sedang"}
+
+# KONSEP 3: DICTIONARY
+riwayat_rental = {}
+id_rental_counter = 1
+
+
+# ============================================================
+# ANGGOTA 1 — AGUNG DWI JAYA
+# ============================================================
+
+def tampilkan_daftar_mobil():
+    print("\n" + "=" * 85)
+    print(f"{'ID':<4} {'Nama Mobil':<20} {'Plat':<14} {'Harga/Hari':<14} {'Kategori':<10} {'Status'}")
+    print("=" * 85)
+    
+    for mobil in daftar_mobil:
+        id_m, nama, plat, harga, status = mobil
+        kategori = kategori_mapping.get(id_m, "-")
+        print(f"{id_m:<4} {nama:<20} {plat:<14} Rp {harga:<10,} {kategori:<10} {status}")
+    print("=" * 85)
+
+
+def tampilkan_struk_rental(data_rental, id_rental, mobil_pilihan):
+    kategori = kategori_mapping.get(data_rental[3], "-")
+    print("\n" + "=" * 35)
+    print("        STRUK BUKTI RENTAL")
+    print("=" * 35)
+    print(f"  ID Rental   : {id_rental}")
+    print(f"  Penyewa     : {data_rental[0]}")
+    print(f"  No KTP      : {data_rental[1]}")
+    print(f"  Mobil       : {mobil_pilihan[1]}")
+    print(f"  Kategori    : {kategori}")
+    print(f"  Lama Sewa   : {data_rental[4]} hari")
+    print(f"  Total Bayar : Rp {data_rental[5]:,}")
+    print(f"  Status      : {data_rental[6]}")
+    print("=" * 35)
+
+
+def proses_rental():
+    global id_rental_counter
+    
+    tampilkan_daftar_mobil()
+    print("\n--- FORMULIR RENTAL ---")
+    
+    nama_penyewa = input("Nama Penyewa      : ").strip()
+    if not nama_penyewa:
+        print("[!] Nama tidak boleh kosong.")
+        return
+
+    no_ktp = input("No KTP            : ").strip()
+    no_telp = input("No Telepon        : ").strip()
+
+    try:
+        id_mobil = int(input("Pilih ID Mobil    : "))
+    except ValueError:
+        print("[!] GAGAL: ID mobil harus berupa angka.")
+        return
+
+    mobil_pilihan = None
+    for mobil in daftar_mobil:
+        if mobil[0] == id_mobil:
+            mobil_pilihan = mobil
+            break
+
+    if not mobil_pilihan or mobil_pilihan[4] != "Tersedia":
+        print("[!] Mobil tidak tersedia.")
+        return
+
+    try:
+        jumlah_hari = int(input("Jumlah Hari Sewa  : "))
+        if jumlah_hari <= 0:
+            print("[!] Jumlah hari harus lebih dari 0.")
+            return
+    except ValueError:
+        print("[!] GAGAL: Jumlah hari harus berupa angka.")
+        return
+
+    total = hitung_total_biaya(mobil_pilihan[3], jumlah_hari)
+
+    if input(f"\nTotal Biaya: Rp {total:,}. Konfirmasi (y/n)? ").lower() != 'y':
+        print("[!] Rental dibatalkan.")
+        return
+
+    mobil_pilihan[4] = "Disewa"
+
+    data_rental = (nama_penyewa, no_ktp, no_telp, id_mobil, jumlah_hari, total, "Aktif")
+    riwayat_rental[id_rental_counter] = data_rental
+
+    tampilkan_struk_rental(data_rental, id_rental_counter, mobil_pilihan)
+    id_rental_counter += 1
+
+
+# ============================================================
+# ANGGOTA 2 — MARSEL
+# ============================================================
+
+def hitung_total_biaya(harga_per_hari, jumlah_hari):
+    total = harga_per_hari * jumlah_hari
+    if jumlah_hari >= 7:
+        diskon = int(total * 0.10)
+        total -= diskon
+        print(f"  [i] Diskon 10% (sewa 7+ hari): -Rp {diskon:,}")
+    return total
+
+
+def cari_mobil_tersedia(kategori_filter=None):
+    hasil = []
+    for m in daftar_mobil:
+        if m[4] == "Tersedia":
+            if kategori_filter is None or kategori_mapping.get(m[0]) == kategori_filter:
+                hasil.append(m)
+    
+    if not hasil:
+        print(f"[!] Tidak ada mobil tersedia{f' kategori {kategori_filter}' if kategori_filter else ''}.")
+        return
+        
+    print(f"\n--- MOBIL TERSEDIA {'(' + kategori_filter + ')' if kategori_filter else ''} ---")
+    for m in hasil:
+        print(f"  ID: {m[0]} | {m[1]} | Rp {m[3]:,} | {kategori_mapping.get(m[0])}")
+
+
+def kelola_pengembalian():
+    if not riwayat_rental:
+        print("[!] Belum ada riwayat rental.")
+        return
+
+    print("\n--- RENTAL AKTIF ---")
+    for rid, data in riwayat_rental.items():
+        if data[6] == "Aktif":
+            print(f"  ID Rental: {rid} | Penyewa: {data[0]} | Mobil ID: {data[3]}")
+
+    try:
+        id_kembali = int(input("\nMasukkan ID Rental yang dikembalikan: "))
+    except ValueError:
+        print("[!] Input harus angka.")
+        return
+
+    if id_kembali not in riwayat_rental or riwayat_rental[id_kembali][6] != "Aktif":
+        print("[!] ID Rental tidak valid atau sudah dikembalikan.")
+        return
+
+    data_lama = riwayat_rental[id_kembali]
+
+    try:
+        telat = int(input("Hari terlambat (0 jika tepat waktu): "))
+        if telat < 0: raise ValueError
+    except ValueError:
+        print("[!] Input hari tidak valid.")
+        return
+
+    harga = 0
+    for mobil in daftar_mobil:
+        if mobil[0] == data_lama[3]:
+            harga = mobil[3]
+            break
+
+    denda = telat * harga
+
+    # BUKTI TUPLE IMMUTABILITY: Buat tuple BARU
+    data_baru = (data_lama[0], data_lama[1], data_lama[2], data_lama[3], data_lama[4], data_lama[5], "Dikembalikan")
+    riwayat_rental[id_kembali] = data_baru
+
+    for mobil in daftar_mobil:
+        if mobil[0] == data_lama[3]:
+            mobil[4] = "Tersedia"
+            break
+
+    print(f"\n[✓] Pengembalian sukses! Denda: Rp {denda:,}" if denda > 0 else "\n[✓] Pengembalian sukses! Tepat waktu.")
+
+
+# ============================================================
+# ANGGOTA 3 — FAKHRI MUHTASIB
+# ============================================================
+
+def simpan_riwayat():
+    try:
+        with open("riwayat_rental.txt", "w") as f:
+            f.write("ID|Nama|KTP|Telp|IDMobil|Hari|Total|Status\n")
+            for rid, data in riwayat_rental.items():
+                baris = f"{rid}|{data[0]}|{data[1]}|{data[2]}|{data[3]}|{data[4]}|{data[5]}|{data[6]}\n"
+                f.write(baris)
+        print("[✓] Data berhasil disimpan ke file.")
+    except PermissionError:
+        print("[!] GAGAL: Tidak ada izin menulis file.")
+    except IOError as e:
+        print(f"[!] GAGAL: Error file -> {e}")
+
+
+def muat_riwayat():
+    global id_rental_counter
+    try:
+        with open("riwayat_rental.txt", "r") as f:
+            baris_list = f.readlines()
+        
+        for baris in baris_list[1:]:
+            bagian = baris.strip().split("|")
+            if len(bagian) == 8:
+                rid = int(bagian[0])
+                data = (bagian[1], bagian[2], bagian[3], int(bagian[4]), int(bagian[5]), int(bagian[6]), bagian[7])
+                riwayat_rental[rid] = data
+                
+                if rid >= id_rental_counter:
+                    id_rental_counter = rid + 1
+                
+                if data[6] == "Aktif":
+                    for m in daftar_mobil:
+                        if m[0] == data[3]: m[4] = "Disewa"
+                        
+        print("[✓] Riwayat berhasil dimuat.")
+    except FileNotFoundError:
+        print("[i] File riwayat belum ada (ini program baru).")
+    except ValueError:
+        print("[!] File riwayat memiliki format rusak.")
+
+
+def tampilkan_riwayat_rekursif(keys, index=0):
+    # BASE CASE
+    if index >= len(keys):
+        print("-" * 75)
+        return
+
+    rid = keys[index]
+    data = riwayat_rental[rid]
+    
+    nama_mobil = "-"
+    for m in daftar_mobil:
+        if m[0] == data[3]:
+            nama_mobil = m[1]
+            break
+
+    print(f"  {rid:<6} {data[0]:<15} {nama_mobil:<18} {data[4]:<5} Rp {data[5]:<10,} {data[6]}")
+
+    # RECURSIVE CALL
+    tampilkan_riwayat_rekursif(keys, index + 1)
+
+
+# ============================================================
+# MENU UTAMA
+# ============================================================
+
+def menu_utama():
+    muat_riwayat()
+    while True:
+        print("\n" + "=" * 45)
+        print("  SISTEM RENTAL MOBIL SEDERHANA")
+        print("=" * 45)
+        print(" 1. Tampilkan Daftar Mobil")
+        print(" 2. Cari Mobil Tersedia")
+        print(" 3. Proses Rental Mobil")
+        print(" 4. Kelola Pengembalian")
+        print(" 5. Tampilkan Riwayat Rental")
+        print(" 6. Simpan Riwayat ke File")
+        print(" 0. Keluar")
+        print("=" * 45)
+
+        pilihan = input("Pilih menu (0-6): ").strip()
+
+        if pilihan == "1":
+            tampilkan_daftar_mobil()
+        elif pilihan == "2":
+            # UBAHAN: Filter menu disesuaikan menjadi Sederhana, Sedang, Mewah
+            print("\nFilter: 0.Semua | 1.Sederhana | 2.Sedang | 3.Mewah")
+            try:
+                pilih = int(input("Pilih: "))
+                if pilih == 0: cari_mobil_tersedia()
+                elif 1 <= pilih <= 3: cari_mobil_tersedia(KATEGORI_MOBIL[pilih-1])
+                else: print("[!] Pilihan tidak ada.")
+            except ValueError: print("[!] Input harus angka.")
+        elif pilihan == "3":
+            proses_rental()
+        elif pilihan == "4":
+            kelola_pengembalian()
+        elif pilihan == "5":
+            if not riwayat_rental: print("[!] Riwayat kosong.")
+            else:
+                print(f"\n--- RIWAYAT RENTAL ---")
+                print(f"  {'ID':<6} {'Penyewa':<15} {'Mobil':<18} {'Hari':<5} {'Total':<12} Status")
+                tampilkan_riwayat_rekursif(sorted(riwayat_rental.keys()))
+        elif pilihan == "6":
+            simpan_riwayat()
+        elif pilihan == "0":
+            simpan_riwayat()
+            print("Terima kasih! Program ditutup.")
+            break
+        else:
+            print("[!] Pilihan tidak valid.")
+
+if __name__ == "__main__":
+    menu_utama()
